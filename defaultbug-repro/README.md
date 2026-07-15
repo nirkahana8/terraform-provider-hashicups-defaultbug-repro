@@ -1,4 +1,4 @@
-# Repro: object `Default` on a Computed `SingleNestedAttribute` is clobbered for computed children
+# Repro: object `Default` on a Computed `SingleNestedAttribute` has no effect when the object's children are also `computed`
 
 Minimal, self-contained reproduction for
 [hashicorp/terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework).
