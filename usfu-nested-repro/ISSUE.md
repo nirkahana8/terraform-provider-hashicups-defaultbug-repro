@@ -22,8 +22,45 @@ s.Attributes["nested"] = nested
 resp.Schema = s
 ```
 
-Schema shape (from the IR): `nested` (Optional+Computed object) → `sub`
-(Optional+Computed object) → `ref_id` (string). The child `sub` is itself an object.
+Generated schema (`internal/generated/resource_thing/thing_resource_gen.go`) — note the CustomTypes `NestedType`/`SubType`:
+
+```go
+func ThingResourceSchema(ctx context.Context) schema.Schema {
+	return schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+			},
+			"nested": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"sub": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"ref_id": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+							},
+						},
+						CustomType: SubType{
+							ObjectType: types.ObjectType{
+								AttrTypes: SubValue{}.AttributeTypes(ctx),
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+				},
+				CustomType: NestedType{
+					ObjectType: types.ObjectType{
+						AttrTypes: NestedValue{}.AttributeTypes(ctx),
+					},
+				},
+				Optional: true,
+				Computed: true,
+			},
+		},
+	}
+}
+```
 
 Config omits `nested`:
 
