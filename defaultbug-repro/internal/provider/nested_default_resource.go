@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var _ resource.Resource = (*thingResource)(nil)
@@ -33,8 +34,14 @@ type thingModel struct {
 }
 
 var (
-	usersAttrTypes     = map[string]attr.Type{"is_any": types.BoolType}
-	locationsAttrTypes = map[string]attr.Type{"is_any": types.BoolType}
+	usersAttrTypes = map[string]attr.Type{
+		"is_any":   types.BoolType,
+		"user_ids": types.ListType{ElemType: types.StringType},
+	}
+	locationsAttrTypes = map[string]attr.Type{
+		"is_any":       types.BoolType,
+		"location_ids": types.ListType{ElemType: types.StringType},
+	}
 )
 
 func (r *thingResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -57,6 +64,11 @@ func (r *thingResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Computed: true,
 						Attributes: map[string]schema.Attribute{
 							"is_any": schema.BoolAttribute{Optional: true, Computed: true},
+							"user_ids": schema.ListAttribute{
+								Optional:    true,
+								Computed:    true,
+								ElementType: basetypes.StringType{},
+							},
 						},
 					},
 					"locations": schema.SingleNestedAttribute{
@@ -65,12 +77,18 @@ func (r *thingResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						// OBJECT-level default, fully populated.
 						Default: objectdefault.StaticValue(types.ObjectValueMust(
 							locationsAttrTypes,
-							map[string]attr.Value{"is_any": types.BoolValue(true)},
+							map[string]attr.Value{"is_any": types.BoolValue(true), "location_ids": types.ListNull(basetypes.StringType{})},
 						)),
 						Attributes: map[string]schema.Attribute{
 							"is_any": schema.BoolAttribute{
 								Optional: true,
 								Computed: true,
+								// NO default of its own.
+							},
+							"location_ids": schema.ListAttribute{
+								Optional:    true,
+								Computed:    true,
+								ElementType: basetypes.StringType{},
 								// NO default of its own.
 							},
 						},

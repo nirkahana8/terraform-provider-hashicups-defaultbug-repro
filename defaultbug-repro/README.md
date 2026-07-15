@@ -28,9 +28,10 @@ See [ISSUE.md](./ISSUE.md) for the full write-up.
 
 ```
 scope     (Optional+Computed)
-  users     (Optional+Computed) { is_any bool }          -- set in config
-  locations (Optional+Computed, Default {is_any=true})   -- omitted in config
-    is_any  (bool, Optional+Computed, no default of its own)
+  users     (Optional+Computed) { is_any bool, user_ids list }          -- set in config
+  locations (Optional+Computed, Default {is_any=true, location_ids=null}) -- omitted in config
+    is_any       (bool, Optional+Computed, no default of its own)
+    location_ids (list, Optional+Computed, no default of its own)
 ```
 
 ## Reproduce (acceptance test)
@@ -60,15 +61,17 @@ EOF
 $ cd examples && TF_CLI_CONFIG_FILE=.terraformrc terraform plan
 ```
 
-Shows (object default applied, but the child was re-marked unknown):
+Shows (object default applied, but every computed child was re-marked unknown):
 
 ```hcl
 scope = {
   locations = {
-      is_any = (known after apply)   # expected true
+      is_any       = (known after apply)   # default said true
+      location_ids = (known after apply)   # default said null
     }
   users = {
-      is_any = true
+      is_any   = true
+      user_ids = (known after apply)
     }
 }
 ```

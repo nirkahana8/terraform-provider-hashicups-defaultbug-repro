@@ -24,15 +24,18 @@ with **no default of its own**:
             Optional: true,
             Computed: true,
             Default: objectdefault.StaticValue(types.ObjectValueMust(
-                map[string]attr.Type{"is_any": types.BoolType},
-                map[string]attr.Value{"is_any": types.BoolValue(true)},
+                map[string]attr.Type{
+                    "is_any":       types.BoolType,
+                    "location_ids": types.ListType{ElemType: types.StringType},
+                },
+                map[string]attr.Value{
+                    "is_any":       types.BoolValue(true),
+                    "location_ids": types.ListNull(types.StringType),
+                },
             )),
             Attributes: map[string]schema.Attribute{
-                "is_any": schema.BoolAttribute{
-                    Optional: true,
-                    Computed: true,
-                    // no Default of its own
-                },
+                "is_any":       schema.BoolAttribute{Optional: true, Computed: true}, // no Default of its own
+                "location_ids": schema.ListAttribute{Optional: true, Computed: true, ElementType: types.StringType}, // no Default
             },
         },
     },
@@ -55,19 +58,22 @@ default"** — the plan should apply the object default:
 
 ```hcl
 scope = {
-  locations = { is_any = true }
-  users     = { is_any = true }
+  locations = { is_any = true, location_ids = null }
+  users     = { is_any = true, user_ids = (known after apply) }
 }
 ```
 
 ### Actual behavior
 
-`terraform plan` (the object default is applied, then the child is re-marked unknown):
+`terraform plan` (the object default is applied, then every computed child is re-marked unknown):
 
 ```hcl
 scope = {
-  locations = { is_any = (known after apply) }
-  users     = { is_any = true }
+  locations = {
+    is_any       = (known after apply)
+    location_ids = (known after apply)
+  }
+  users = { is_any = true, user_ids = (known after apply) }
 }
 ```
 
