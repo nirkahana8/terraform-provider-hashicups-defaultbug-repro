@@ -90,9 +90,13 @@ It does **not** crash when `nested` is fully specified (e.g.
 - Reproduces only with the **generated CustomType** and when the modified nested
   attribute's **child is itself an object**. A hand-written plain `ObjectType`, or
   a nested attribute with only scalar children, does not crash.
-- Related, closed/locked: #767 (PlanModifiers on Custom Type
-  NestedAttributeObject/NestedBlockObject) and #754. This still reproduces on
-  v1.19.0, and #767 asks that similar findings be filed as a new issue.
+- Related, closed/locked:
+  [#767](https://github.com/hashicorp/terraform-plugin-framework/issues/767)
+  (PlanModifiers on Custom Type NestedAttributeObject/NestedBlockObject) and
+  [#754](https://github.com/hashicorp/terraform-plugin-framework/issues/754).
+  This still reproduces on v1.19.0, and
+  [#767](https://github.com/hashicorp/terraform-plugin-framework/issues/767) asks
+  that similar findings be filed as a new issue.
 
 ### Minimal repro
 

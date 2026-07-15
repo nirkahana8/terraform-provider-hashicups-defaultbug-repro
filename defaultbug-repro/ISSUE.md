@@ -133,6 +133,6 @@ children are `Computed`.
 
 ### References
 
-- Related: #726 (Defaults don't work in nested attributes) — the maintainer behavior table this contradicts.
-- Related: #777 (Consider Object Nested Attribute Default Implementation) — enhancement, different ask.
+- Related: [#726](https://github.com/hashicorp/terraform-plugin-framework/issues/726) (Defaults don't work in nested attributes) — the maintainer behavior table this contradicts.
+- Related: [#777](https://github.com/hashicorp/terraform-plugin-framework/issues/777) (Consider Object Nested Attribute Default Implementation) — enhancement, different ask.
 - Minimal repro: https://github.com/nirkahana8/terraform-provider-hashicups-defaultbug-repro/tree/defaultbug-repro/defaultbug-repro
