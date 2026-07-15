@@ -23,9 +23,11 @@ func (r *thingResource) Metadata(_ context.Context, req resource.MetadataRequest
 
 // Schema uses the GENERATED schema (with its strict CustomType, NestedType) and
 // attaches the stock objectplanmodifier.UseStateForUnknown() to the nested
-// attribute. On plan the framework round-trips the object through
-// NestedType.ValueFromObject, which rejects a partial object with
-// "child is missing from object".
+// attribute. When `nested` is unknown in the plan with no prior state to
+// substitute (i.e. create with `nested` omitted), the framework materializes a
+// partial object and runs it through NestedType.ValueFromObject, which rejects it
+// with "child is missing from object". The child type (scalar or object) is
+// irrelevant; removing the modifier removes the crash.
 func (r *thingResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	s := gen.ThingResourceSchema(ctx)
 	nested := s.Attributes["nested"].(schema.SingleNestedAttribute)

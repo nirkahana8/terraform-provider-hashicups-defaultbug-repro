@@ -1,4 +1,4 @@
-# Repro: object `UseStateForUnknown` on a generated (CustomType) nested attribute crashes with "Attribute Missing"
+# Repro: object plan modifier on a generated (CustomType) nested attribute crashes with "Attribute Missing"
 
 Minimal reproduction for
 [hashicorp/terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework),
@@ -7,30 +7,35 @@ built from an IR via `tfplugingen-framework generate all` so the schema uses the
 
 ## The bug
 
-Attaching the stock `objectplanmodifier.UseStateForUnknown()` to a generated
-`SingleNestedAttribute` (backed by a CustomType) crashes `terraform plan` when:
-
-- the attribute is **omitted** from config (null + `Computed` ⇒ unknown in the plan), and
-- its child is **itself an object**.
-
-The framework materializes a partial parent object and runs it through the
-generated `NestedType.ValueFromObject`, which rejects it:
+Attaching an object plan modifier (here the stock
+`objectplanmodifier.UseStateForUnknown()`) to a generated `SingleNestedAttribute`
+(backed by a CustomType) crashes `terraform plan` when the attribute is **unknown
+in the plan with no prior state to substitute** — i.e. on **create** when it is
+omitted (Optional+Computed):
 
 ```
 Error: Attribute Missing
-sub is missing from object
+child is missing from object
 ```
 
-It does **not** crash when the attribute is fully specified in config.
+The framework materializes a partial object and runs it through the generated
+`NestedType.ValueFromObject`, which rejects it.
+
+It does **not** crash when:
+- the attribute is present in config (known in the plan),
+- on update (prior state substitutes via `UseStateForUnknown`), or
+- the modifier is not attached.
+
+The child type (**scalar or object**) is irrelevant.
 
 Related (closed/locked): terraform-plugin-framework #767, #754.
 
 ## How it's built
 
 - `provider_code_spec.json` — the IR: a `thing` resource with `id` and a computed
-  `nested` object whose child `sub` is itself an object (`{ ref_id }`).
+  `nested` object with a `child` string.
 - `internal/generated/` — produced by `tfplugingen-framework generate all` (the
-  strict CustomType `NestedType`/`SubType` live here).
+  strict CustomType `NestedType` lives here).
 - `internal/provider/thing_resource.go` — uses the generated `ThingResourceSchema`
   and attaches `objectplanmodifier.UseStateForUnknown()` to `nested`.
 
@@ -46,7 +51,7 @@ $ tfplugingen-framework generate all --input provider_code_spec.json --output in
 $ TF_ACC=1 go test ./internal/provider/ -run TestObjectUseStateForUnknown_crash -v
 ```
 
-Fails with `Error: Attribute Missing / sub is missing from object`.
+Fails with `Error: Attribute Missing / child is missing from object`.
 
 ## Reproduce (manual `terraform plan`)
 

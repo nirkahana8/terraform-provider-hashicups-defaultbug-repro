@@ -9,15 +9,16 @@ import (
 // TestObjectUseStateForUnknown_crash shows that attaching the stock
 // objectplanmodifier.UseStateForUnknown() to a GENERATED, CustomType-backed
 // nested attribute crashes at plan time when that attribute is omitted from
-// config (null + Computed => unknown in the plan) and its child is itself an
-// object. The framework materializes a partial parent object and runs it through
+// config on CREATE (null + Computed => unknown in the plan, with no prior state
+// to substitute). The framework materializes a partial object and runs it through
 // the generated NestedType.ValueFromObject, which rejects it with:
 //
 //	Error: Attribute Missing
-//	sub is missing from object
+//	child is missing from object
 //
-// Note: it does NOT crash when `nested` is fully specified in config — only when
-// it is unknown in the plan. Run:
+// It does NOT crash when `nested` is present in config, nor on update (prior state
+// substitutes), nor without the modifier. The child type (scalar or object) is
+// irrelevant. Run:
 //
 //	TF_ACC=1 go test ./... -run TestObjectUseStateForUnknown_crash -v
 func TestObjectUseStateForUnknown_crash(t *testing.T) {

@@ -1,43 +1,12 @@
 {
   "version": "0.1",
-  "provider": {
-    "name": "usfu"
-  },
+  "provider": { "name": "usfu" },
   "resources": [
-    {
-      "name": "thing",
-      "schema": {
-        "attributes": [
-          {
-            "name": "id",
-            "string": {
-              "computed_optional_required": "computed"
-            }
-          },
-          {
-            "name": "nested",
-            "single_nested": {
-              "computed_optional_required": "computed_optional",
-              "attributes": [
-                {
-                  "name": "sub",
-                  "single_nested": {
-                    "computed_optional_required": "computed_optional",
-                    "attributes": [
-                      {
-                        "name": "ref_id",
-                        "string": {
-                          "computed_optional_required": "computed_optional"
-                        }
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      }
-    }
+    { "name": "thing", "schema": { "attributes": [
+      { "name": "id", "string": { "computed_optional_required": "computed" } },
+      { "name": "nested", "single_nested": { "computed_optional_required": "computed_optional", "attributes": [
+        { "name": "child", "string": { "computed_optional_required": "computed_optional" } }
+      ] } }
+    ] } }
   ]
 }

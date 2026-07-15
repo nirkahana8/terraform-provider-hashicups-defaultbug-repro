@@ -23,18 +23,7 @@ func ThingResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"nested": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
-					"sub": schema.SingleNestedAttribute{
-						Attributes: map[string]schema.Attribute{
-							"ref_id": schema.StringAttribute{
-								Optional: true,
-								Computed: true,
-							},
-						},
-						CustomType: SubType{
-							ObjectType: types.ObjectType{
-								AttrTypes: SubValue{}.AttributeTypes(ctx),
-							},
-						},
+					"child": schema.StringAttribute{
 						Optional: true,
 						Computed: true,
 					},
@@ -81,22 +70,22 @@ func (t NestedType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 
 	attributes := in.Attributes()
 
-	subAttribute, ok := attributes["sub"]
+	childAttribute, ok := attributes["child"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`sub is missing from object`)
+			`child is missing from object`)
 
 		return nil, diags
 	}
 
-	subVal, ok := subAttribute.(basetypes.ObjectValue)
+	childVal, ok := childAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`sub expected to be basetypes.ObjectValue, was: %T`, subAttribute))
+			fmt.Sprintf(`child expected to be basetypes.StringValue, was: %T`, childAttribute))
 	}
 
 	if diags.HasError() {
@@ -104,7 +93,7 @@ func (t NestedType) ValueFromObject(ctx context.Context, in basetypes.ObjectValu
 	}
 
 	return NestedValue{
-		Sub:   subVal,
+		Child: childVal,
 		state: attr.ValueStateKnown,
 	}, diags
 }
@@ -172,22 +161,22 @@ func NewNestedValue(attributeTypes map[string]attr.Type, attributes map[string]a
 		return NewNestedValueUnknown(), diags
 	}
 
-	subAttribute, ok := attributes["sub"]
+	childAttribute, ok := attributes["child"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`sub is missing from object`)
+			`child is missing from object`)
 
 		return NewNestedValueUnknown(), diags
 	}
 
-	subVal, ok := subAttribute.(basetypes.ObjectValue)
+	childVal, ok := childAttribute.(basetypes.StringValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`sub expected to be basetypes.ObjectValue, was: %T`, subAttribute))
+			fmt.Sprintf(`child expected to be basetypes.StringValue, was: %T`, childAttribute))
 	}
 
 	if diags.HasError() {
@@ -195,7 +184,7 @@ func NewNestedValue(attributeTypes map[string]attr.Type, attributes map[string]a
 	}
 
 	return NestedValue{
-		Sub:   subVal,
+		Child: childVal,
 		state: attr.ValueStateKnown,
 	}, diags
 }
@@ -268,7 +257,7 @@ func (t NestedType) ValueType(ctx context.Context) attr.Value {
 var _ basetypes.ObjectValuable = NestedValue{}
 
 type NestedValue struct {
-	Sub   basetypes.ObjectValue `tfsdk:"sub"`
+	Child basetypes.StringValue `tfsdk:"child"`
 	state attr.ValueState
 }
 
@@ -278,9 +267,7 @@ func (v NestedValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error
 	var val tftypes.Value
 	var err error
 
-	attrTypes["sub"] = basetypes.ObjectType{
-		AttrTypes: SubValue{}.AttributeTypes(ctx),
-	}.TerraformType(ctx)
+	attrTypes["child"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
 
@@ -288,13 +275,13 @@ func (v NestedValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error
 	case attr.ValueStateKnown:
 		vals := make(map[string]tftypes.Value, 1)
 
-		val, err = v.Sub.ToTerraformValue(ctx)
+		val, err = v.Child.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["sub"] = val
+		vals["child"] = val
 
 		if err := tftypes.ValidateValue(objectType, vals); err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
@@ -325,31 +312,8 @@ func (v NestedValue) String() string {
 func (v NestedValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	var sub basetypes.ObjectValue
-
-	if v.Sub.IsNull() {
-		sub = types.ObjectNull(
-			SubValue{}.AttributeTypes(ctx),
-		)
-	}
-
-	if v.Sub.IsUnknown() {
-		sub = types.ObjectUnknown(
-			SubValue{}.AttributeTypes(ctx),
-		)
-	}
-
-	if !v.Sub.IsNull() && !v.Sub.IsUnknown() {
-		sub = types.ObjectValueMust(
-			SubValue{}.AttributeTypes(ctx),
-			v.Sub.Attributes(),
-		)
-	}
-
 	attributeTypes := map[string]attr.Type{
-		"sub": basetypes.ObjectType{
-			AttrTypes: SubValue{}.AttributeTypes(ctx),
-		},
+		"child": basetypes.StringType{},
 	}
 
 	if v.IsNull() {
@@ -363,7 +327,7 @@ func (v NestedValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, 
 	objVal, diags := types.ObjectValue(
 		attributeTypes,
 		map[string]attr.Value{
-			"sub": sub,
+			"child": v.Child,
 		})
 
 	return objVal, diags
@@ -384,7 +348,7 @@ func (v NestedValue) Equal(o attr.Value) bool {
 		return true
 	}
 
-	if !v.Sub.Equal(other.Sub) {
+	if !v.Child.Equal(other.Child) {
 		return false
 	}
 
@@ -401,332 +365,6 @@ func (v NestedValue) Type(ctx context.Context) attr.Type {
 
 func (v NestedValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"sub": basetypes.ObjectType{
-			AttrTypes: SubValue{}.AttributeTypes(ctx),
-		},
-	}
-}
-
-var _ basetypes.ObjectTypable = SubType{}
-
-type SubType struct {
-	basetypes.ObjectType
-}
-
-func (t SubType) Equal(o attr.Type) bool {
-	other, ok := o.(SubType)
-
-	if !ok {
-		return false
-	}
-
-	return t.ObjectType.Equal(other.ObjectType)
-}
-
-func (t SubType) String() string {
-	return "SubType"
-}
-
-func (t SubType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	attributes := in.Attributes()
-
-	refIdAttribute, ok := attributes["ref_id"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`ref_id is missing from object`)
-
-		return nil, diags
-	}
-
-	refIdVal, ok := refIdAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`ref_id expected to be basetypes.StringValue, was: %T`, refIdAttribute))
-	}
-
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return SubValue{
-		RefId: refIdVal,
-		state: attr.ValueStateKnown,
-	}, diags
-}
-
-func NewSubValueNull() SubValue {
-	return SubValue{
-		state: attr.ValueStateNull,
-	}
-}
-
-func NewSubValueUnknown() SubValue {
-	return SubValue{
-		state: attr.ValueStateUnknown,
-	}
-}
-
-func NewSubValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (SubValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
-	ctx := context.Background()
-
-	for name, attributeType := range attributeTypes {
-		attribute, ok := attributes[name]
-
-		if !ok {
-			diags.AddError(
-				"Missing SubValue Attribute Value",
-				"While creating a SubValue value, a missing attribute value was detected. "+
-					"A SubValue must contain values for all attributes, even if null or unknown. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("SubValue Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
-			)
-
-			continue
-		}
-
-		if !attributeType.Equal(attribute.Type(ctx)) {
-			diags.AddError(
-				"Invalid SubValue Attribute Type",
-				"While creating a SubValue value, an invalid attribute value was detected. "+
-					"A SubValue must use a matching attribute type for the value. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("SubValue Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("SubValue Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
-			)
-		}
-	}
-
-	for name := range attributes {
-		_, ok := attributeTypes[name]
-
-		if !ok {
-			diags.AddError(
-				"Extra SubValue Attribute Value",
-				"While creating a SubValue value, an extra attribute value was detected. "+
-					"A SubValue must not contain values beyond the expected attribute types. "+
-					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra SubValue Attribute Name: %s", name),
-			)
-		}
-	}
-
-	if diags.HasError() {
-		return NewSubValueUnknown(), diags
-	}
-
-	refIdAttribute, ok := attributes["ref_id"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`ref_id is missing from object`)
-
-		return NewSubValueUnknown(), diags
-	}
-
-	refIdVal, ok := refIdAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`ref_id expected to be basetypes.StringValue, was: %T`, refIdAttribute))
-	}
-
-	if diags.HasError() {
-		return NewSubValueUnknown(), diags
-	}
-
-	return SubValue{
-		RefId: refIdVal,
-		state: attr.ValueStateKnown,
-	}, diags
-}
-
-func NewSubValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) SubValue {
-	object, diags := NewSubValue(attributeTypes, attributes)
-
-	if diags.HasError() {
-		// This could potentially be added to the diag package.
-		diagsStrings := make([]string, 0, len(diags))
-
-		for _, diagnostic := range diags {
-			diagsStrings = append(diagsStrings, fmt.Sprintf(
-				"%s | %s | %s",
-				diagnostic.Severity(),
-				diagnostic.Summary(),
-				diagnostic.Detail()))
-		}
-
-		panic("NewSubValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
-	}
-
-	return object
-}
-
-func (t SubType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
-	if in.Type() == nil {
-		return NewSubValueNull(), nil
-	}
-
-	if !in.Type().Equal(t.TerraformType(ctx)) {
-		return nil, fmt.Errorf("expected %s, got %s", t.TerraformType(ctx), in.Type())
-	}
-
-	if !in.IsKnown() {
-		return NewSubValueUnknown(), nil
-	}
-
-	if in.IsNull() {
-		return NewSubValueNull(), nil
-	}
-
-	attributes := map[string]attr.Value{}
-
-	val := map[string]tftypes.Value{}
-
-	err := in.As(&val)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range val {
-		a, err := t.AttrTypes[k].ValueFromTerraform(ctx, v)
-
-		if err != nil {
-			return nil, err
-		}
-
-		attributes[k] = a
-	}
-
-	return NewSubValueMust(SubValue{}.AttributeTypes(ctx), attributes), nil
-}
-
-func (t SubType) ValueType(ctx context.Context) attr.Value {
-	return SubValue{}
-}
-
-var _ basetypes.ObjectValuable = SubValue{}
-
-type SubValue struct {
-	RefId basetypes.StringValue `tfsdk:"ref_id"`
-	state attr.ValueState
-}
-
-func (v SubValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
-	attrTypes := make(map[string]tftypes.Type, 1)
-
-	var val tftypes.Value
-	var err error
-
-	attrTypes["ref_id"] = basetypes.StringType{}.TerraformType(ctx)
-
-	objectType := tftypes.Object{AttributeTypes: attrTypes}
-
-	switch v.state {
-	case attr.ValueStateKnown:
-		vals := make(map[string]tftypes.Value, 1)
-
-		val, err = v.RefId.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["ref_id"] = val
-
-		if err := tftypes.ValidateValue(objectType, vals); err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		return tftypes.NewValue(objectType, vals), nil
-	case attr.ValueStateNull:
-		return tftypes.NewValue(objectType, nil), nil
-	case attr.ValueStateUnknown:
-		return tftypes.NewValue(objectType, tftypes.UnknownValue), nil
-	default:
-		panic(fmt.Sprintf("unhandled Object state in ToTerraformValue: %s", v.state))
-	}
-}
-
-func (v SubValue) IsNull() bool {
-	return v.state == attr.ValueStateNull
-}
-
-func (v SubValue) IsUnknown() bool {
-	return v.state == attr.ValueStateUnknown
-}
-
-func (v SubValue) String() string {
-	return "SubValue"
-}
-
-func (v SubValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	attributeTypes := map[string]attr.Type{
-		"ref_id": basetypes.StringType{},
-	}
-
-	if v.IsNull() {
-		return types.ObjectNull(attributeTypes), diags
-	}
-
-	if v.IsUnknown() {
-		return types.ObjectUnknown(attributeTypes), diags
-	}
-
-	objVal, diags := types.ObjectValue(
-		attributeTypes,
-		map[string]attr.Value{
-			"ref_id": v.RefId,
-		})
-
-	return objVal, diags
-}
-
-func (v SubValue) Equal(o attr.Value) bool {
-	other, ok := o.(SubValue)
-
-	if !ok {
-		return false
-	}
-
-	if v.state != other.state {
-		return false
-	}
-
-	if v.state != attr.ValueStateKnown {
-		return true
-	}
-
-	if !v.RefId.Equal(other.RefId) {
-		return false
-	}
-
-	return true
-}
-
-func (v SubValue) Type(ctx context.Context) attr.Type {
-	return SubType{
-		basetypes.ObjectType{
-			AttrTypes: v.AttributeTypes(ctx),
-		},
-	}
-}
-
-func (v SubValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
-	return map[string]attr.Type{
-		"ref_id": basetypes.StringType{},
+		"child": basetypes.StringType{},
 	}
 }
