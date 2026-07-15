@@ -87,6 +87,11 @@ It does **not** crash when:
 The **child type is irrelevant** — a scalar child (`child` string, above) crashes
 just the same as a nested-object child.
 
+`objectplanmodifier.UseNonNullStateForUnknown()` fails **identically** (same
+`child is missing from object` on create-omitted), which confirms the crash is
+triggered by attaching *any* object plan modifier — not by the specific modifier's
+logic (both no-op on create, since there is no prior state).
+
 ### Notes
 
 - Related, closed/locked:
