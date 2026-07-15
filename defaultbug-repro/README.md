@@ -9,27 +9,29 @@ A `SingleNestedAttribute` that is `Computed` and carries an object-level
 `Default` (`objectdefault.StaticValue(...)`) loses that default for any child
 attribute that is itself `Computed` and has **no default of its own**.
 
-During `PlanResourceChange` the framework:
+During `PlanResourceChange`:
 
-1. `TransformDefaults` applies the object default → `nested = {child = "default-value"}`.
-2. `MarkComputedNilsAsUnknown` then walks each attribute independently. It
-   correctly skips the `nested` object (it has an `ObjectDefaultValue`), but it
-   still visits the child `nested.child` — which is `Computed`, null in config,
-   and has no default of its own — and re-marks it **unknown**, discarding the
-   value the object default just set.
+1. `TransformDefaults` applies the object default → `locations = {is_any = true}`.
+2. `MarkComputedNilsAsUnknown` then walks each attribute independently. It skips
+   the `locations` object (it has an `ObjectDefaultValue`), but re-marks the child
+   `locations.is_any` unknown — it is `Computed`, null in config, and has no
+   default of its own — discarding the value the object default just set.
 
 This contradicts the maintainer behavior table in
 [#726](https://github.com/hashicorp/terraform-plugin-framework/issues/726)
 (row: Default-on-nested = Yes, Default-on-child = No, config = null nested
 attribute → "single nested attribute default").
 
-## Files
+See [ISSUE.md](./ISSUE.md) for the full write-up.
 
-- `internal/provider/nested_default_resource.go` — the resource. Schema is hand-written
-  (no codegen): a `Computed` `nested` object with `objectdefault.StaticValue({child="default-value"})`
-  whose `child` is `Computed` with **no** default.
-- `internal/provider/nested_default_resource_test.go` — an acceptance test that omits
-  `nested` and expects `nested.child == "default-value"`.
+## Shape (mirrors a real provider)
+
+```
+scope     (Optional+Computed)
+  users     (Optional+Computed) { is_any bool }          -- set in config
+  locations (Optional+Computed, Default {is_any=true})   -- omitted in config
+    is_any  (bool, Optional+Computed, no default of its own)
+```
 
 ## Reproduce (acceptance test)
 
@@ -42,7 +44,7 @@ Fails with:
 ```
 Error: Provider returned invalid result object after apply
 After the apply operation, the provider still indicated an unknown value
-for defaultbug_thing.test.nested.child. All values must be known after apply.
+for defaultbug_thing.test.scope.locations.is_any. All values must be known after apply.
 ```
 
 ## Reproduce (manual `terraform plan`)
@@ -58,15 +60,17 @@ EOF
 $ cd examples && TF_CLI_CONFIG_FILE=.terraformrc terraform plan
 ```
 
-Shows (the object default was applied, but `child` was re-marked unknown):
+Shows (object default applied, but the child was re-marked unknown):
 
 ```hcl
-  + resource "defaultbug_thing" "test" {
-      + id     = (known after apply)
-      + nested = {
-          + child = (known after apply)   # expected "default-value"
-        }
+scope = {
+  locations = {
+      is_any = (known after apply)   # expected true
     }
+  users = {
+      is_any = true
+    }
+}
 ```
 
 ## Versions

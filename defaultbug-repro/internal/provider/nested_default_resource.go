@@ -14,19 +14,28 @@ import (
 
 var _ resource.Resource = (*thingResource)(nil)
 
-// NewThingResource is the repro resource: it exposes a Computed
-// SingleNestedAttribute `nested` that carries an object-level Default. The
-// nested object's child is Computed but has NO default of its own.
+// NewThingResource mirrors the pb_provider shape faithfully:
+//
+//	scope     (Optional+Computed, no default)
+//	  users     (Optional+Computed) { is_any bool, no default }  -- set in config
+//	  locations (Optional+Computed, OBJECT DEFAULT {is_any:true}) -- OMITTED in config
+//	    is_any  (bool, Optional+Computed, NO default of its own)
+//
+// The "default" lives on the locations OBJECT (like objectdefault.StaticValue),
+// and locations' child is_any is Computed with no default of its own.
 func NewThingResource() resource.Resource { return &thingResource{} }
 
 type thingResource struct{}
 
 type thingModel struct {
-	ID     types.String `tfsdk:"id"`
-	Nested types.Object `tfsdk:"nested"`
+	ID    types.String `tfsdk:"id"`
+	Scope types.Object `tfsdk:"scope"`
 }
 
-var nestedAttrTypes = map[string]attr.Type{"child": types.StringType}
+var (
+	usersAttrTypes     = map[string]attr.Type{"is_any": types.BoolType}
+	locationsAttrTypes = map[string]attr.Type{"is_any": types.BoolType}
+)
 
 func (r *thingResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_thing"
@@ -39,24 +48,32 @@ func (r *thingResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Computed:      true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
-			"nested": schema.SingleNestedAttribute{
+			"scope": schema.SingleNestedAttribute{
 				Optional: true,
 				Computed: true,
-				// Object-level Default, fully populated. Per the maintainer
-				// behavior table in terraform-plugin-framework#726
-				// (Default-on-nested = Yes, Default-on-child = No, config = null
-				// nested attribute) this row is documented as yielding the
-				// "single nested attribute default".
-				Default: objectdefault.StaticValue(types.ObjectValueMust(
-					nestedAttrTypes,
-					map[string]attr.Value{"child": types.StringValue("default-value")},
-				)),
 				Attributes: map[string]schema.Attribute{
-					"child": schema.StringAttribute{
+					"users": schema.SingleNestedAttribute{
 						Optional: true,
 						Computed: true,
-						// Intentionally NO Default here — this is the crux: the
-						// child is Computed with no default of its own.
+						Attributes: map[string]schema.Attribute{
+							"is_any": schema.BoolAttribute{Optional: true, Computed: true},
+						},
+					},
+					"locations": schema.SingleNestedAttribute{
+						Optional: true,
+						Computed: true,
+						// OBJECT-level default, fully populated.
+						Default: objectdefault.StaticValue(types.ObjectValueMust(
+							locationsAttrTypes,
+							map[string]attr.Value{"is_any": types.BoolValue(true)},
+						)),
+						Attributes: map[string]schema.Attribute{
+							"is_any": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								// NO default of its own.
+							},
+						},
 					},
 				},
 			},
@@ -64,7 +81,7 @@ func (r *thingResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 	}
 }
 
-// CRUD is a trivial echo — no client needed. State is set from the plan.
+// CRUD is a trivial echo — no client needed.
 func (r *thingResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data thingModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)

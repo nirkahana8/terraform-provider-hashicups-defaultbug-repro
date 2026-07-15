@@ -4,9 +4,12 @@ terraform {
   }
 }
 
-# `nested` is omitted entirely (null nested attribute). The resource schema sets
-# an object-level Default of { child = "default-value" }.
+# scope is present (via users). locations is OMITTED but carries a classic
+# object-level Default of { is_any = true }. locations.is_any is Computed with no
+# default of its own.
 #
-# EXPECTED plan: nested = { child = "default-value" }
-# ACTUAL   plan: nested = { child = (known after apply) }
-resource "defaultbug_thing" "test" {}
+# EXPECTED plan: scope.locations = { is_any = true }
+# ACTUAL   plan: scope.locations = { is_any = (known after apply) }
+resource "defaultbug_thing" "test" {
+  scope = { users = { is_any = true } }
+}
