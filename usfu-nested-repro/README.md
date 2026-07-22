@@ -59,7 +59,7 @@ Fails with `Error: Attribute Missing / child is missing from object`.
 $ go build -o terraform-provider-usfu .
 $ cat > examples/.terraformrc <<EOF
 provider_installation {
-  dev_overrides { "registry.terraform.io/hashicorp/usfu" = "$(pwd)" }
+  dev_overrides { "registry.terraform.io/hashicorp/usfu" = "../" }
   direct {}
 }
 EOF
