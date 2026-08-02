@@ -15,29 +15,29 @@ omitted (Optional+Computed):
 
 ```
 Error: Attribute Missing
-child is missing from object
+kind is missing from object
 ```
 
 The framework materializes a partial object and runs it through the generated
-`NestedType.ValueFromObject`, which rejects it.
+`EngineType.ValueFromObject`, which rejects it.
 
 It does **not** crash when:
 - the attribute is present in config (known in the plan),
 - on update (prior state substitutes via `UseStateForUnknown`), or
 - the modifier is not attached.
 
-The child type (**scalar or object**) is irrelevant.
+The child attribute types (**scalar or object**) are irrelevant.
 
 Related (closed/locked): terraform-plugin-framework #767, #754.
 
 ## How it's built
 
-- `provider_code_spec.json` — the IR: a `thing` resource with `id` and a computed
-  `nested` object with a `child` string.
+- `provider_code_spec.json` — the IR: a `car` resource with `id`, `name`, `color`,
+  and a computed `engine` object with `kind` (string) and `volume` (int64).
 - `internal/generated/` — produced by `tfplugingen-framework generate all` (the
-  strict CustomType `NestedType` lives here).
-- `internal/provider/thing_resource.go` — uses the generated `ThingResourceSchema`
-  and attaches `objectplanmodifier.UseStateForUnknown()` to `nested`.
+  strict CustomType `EngineType` lives here).
+- `internal/provider/car_resource.go` — uses the generated `CarResourceSchema`
+  and attaches `objectplanmodifier.UseStateForUnknown()` to `engine`.
 
 Regenerate with:
 
@@ -51,7 +51,7 @@ $ tfplugingen-framework generate all --input provider_code_spec.json --output in
 $ TF_ACC=1 go test ./internal/provider/ -run TestObjectUseStateForUnknown_crash -v
 ```
 
-Fails with `Error: Attribute Missing / child is missing from object`.
+Fails with `Error: Attribute Missing / kind is missing from object`.
 
 ## Reproduce (manual `terraform plan`)
 
