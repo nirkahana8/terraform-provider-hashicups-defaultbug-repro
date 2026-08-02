@@ -2,11 +2,44 @@
   "version": "0.1",
   "provider": { "name": "usfu" },
   "resources": [
-    { "name": "thing", "schema": { "attributes": [
-      { "name": "id", "string": { "computed_optional_required": "computed" } },
-      { "name": "nested", "single_nested": { "computed_optional_required": "computed_optional", "attributes": [
-        { "name": "child", "string": { "computed_optional_required": "computed_optional" } }
-      ] } }
-    ] } }
+    {
+      "name": "car",
+      "schema": {
+        "attributes": [
+          {
+            "name": "id",
+            "string": { "computed_optional_required": "computed" }
+          },
+          {
+            "name": "name",
+            "string": { "computed_optional_required": "required" }
+          },
+          {
+            "name": "color",
+            "string": { "computed_optional_required": "computed_optional" }
+          },
+          {
+            "name": "engine",
+            "single_nested": {
+              "computed_optional_required": "computed_optional",
+              "attributes": [
+                {
+                  "name": "volume",
+                  "int64": {
+                    "computed_optional_required": "computed_optional"
+                  }
+                },
+                {
+                  "name": "kind",
+                  "string": {
+                    "computed_optional_required": "computed_optional"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
   ]
 }

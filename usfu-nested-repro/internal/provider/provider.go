@@ -32,7 +32,7 @@ func (p *usfuProvider) Configure(_ context.Context, _ provider.ConfigureRequest,
 }
 
 func (p *usfuProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{NewThingResource}
+	return []func() resource.Resource{NewCarResource}
 }
 
 func (p *usfuProvider) DataSources(_ context.Context) []func() datasource.DataSource {
